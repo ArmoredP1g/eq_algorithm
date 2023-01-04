@@ -56,7 +56,3 @@ def P_wave_complexity(miniseed_path, p_time, s_time, sec_to_decay=5):
     # 返回结果
     return 1, result
 
-    
-    
-
-    
