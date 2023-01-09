@@ -1,16 +1,22 @@
 from obspy import read
+from statsmodels.tsa.ar_model import AutoReg
 import numpy as np
+import matplotlib.pyplot as plt
 
 
-def P_wave_complexity(miniseed_path, p_time, s_time, sec_to_decay=5):
+def AR(miniseed_path, p_time, s_time, pred_len, sec_to_decay=5, order=2):
     '''
-        波形复杂度计算，参考《基于Bagging集成学习算法的地震事件性质识别分类》3.1章节
+        https://vitalflux.com/autoregressive-ar-models-with-python-examples/
+        对P波到达后的sec_to_decay秒的三份量波形做order阶AR模型，并给出之后对应通道pred_len长度的预测
+        @@--需要statsmodels库--@@
 
         args:
             miniseed_path: seed文件路径
             p_time: P波到达绝对时间 (obspy.core.utcdatetime.UTCDateTime)
             s_time: ...
+            pred_len: 预测长度
             sec_to_decay: 经验系数：非天然震动事件Ｐ波能量衰减主要在5s左右完成。 default=5
+            order: 阶数 default=2
 
         return: boolean, problem, map
             状态(bool): 算法计算状态，True表示完成计算未出现问题，False为计算过程中发现问题
@@ -37,22 +43,27 @@ def P_wave_complexity(miniseed_path, p_time, s_time, sec_to_decay=5):
         if idx_p <= 0 or idx_p >= wave_data.__len__() or idx_s <= 0 or idx_s >= wave_data.__len__():
             return False, "时间越界", None # err: 时间越界
 
-        # 判断ps到时间隔是否小于给定的衰减时常
-        if idx_s-idx_p <= sec_to_decay*sr:
-            return False, "ps到时间隔过小", None # err: ps到时间隔过小
+        # 判断ps到时间隔是否小于0
+        if idx_s-idx_p <= 0:
+            return False, "ps到时间小于0", None # err: ps到时间小于0
 
         # 保留P-S之间的数据
         wave_data = wave_data[idx_p:idx_s]
+        # plt.plot(wave_data)
 
-        # 计算复杂度，积分按平均值计算
-        C = np.average(wave_data[:int(sec_to_decay*sr)]**2)/np.average(wave_data[int(sec_to_decay*sr):]**2)
+        # fit AR模型，并给出预测结果
+        ar_model = AutoReg(wave_data[:int(sec_to_decay*sr)], lags=order).fit()
+        pred = ar_model.predict(start=int(sec_to_decay*sr), end=int(sec_to_decay*sr)+pred_len)
+
 
         if trace.stats['channel'] == 'BHE':
-            result['BHE'] = C
+            result['BHE'] = pred
         if trace.stats['channel'] == 'BHN':
-            result['BHN'] = C
+            result['BHN'] = pred
         if trace.stats['channel'] == 'BHZ':
-            result['BHZ'] = C
+            result['BHZ'] = pred
+
+        plt.plot(pred)
 
     # 返回结果
     return 1, "", result
