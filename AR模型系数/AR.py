@@ -68,3 +68,23 @@ def AR(miniseed_path, p_time, s_time, pred_len, sec_to_decay=5, order=2):
     # 返回结果
     return 1, "", result
 
+
+
+    '''
+        https://vitalflux.com/autoregressive-ar-models-with-python-examples/
+        对P波到达后的sec_to_decay秒的三份量波形做order阶AR模型，并给出之后对应通道pred_len长度的预测
+        @@--需要statsmodels库--@@
+
+args:
+    miniseed_path: seed文件路径
+    p_time: P波到达绝对时间 (obspy.core.utcdatetime.UTCDateTime)
+    s_time: ...
+    pred_len: 预测长度
+    sec_to_decay: 经验系数：非天然震动事件Ｐ波能量衰减主要在5s左右完成。 default=5
+    order: 阶数 default=2
+
+return: boolean, problem, map
+    状态(bool): 算法计算状态，True表示完成计算未出现问题，False为计算过程中发现问题
+    异常(string): 具体异常
+    计算结果(set)：对应在BHE BHN BHZ上的计算结果
+    '''
